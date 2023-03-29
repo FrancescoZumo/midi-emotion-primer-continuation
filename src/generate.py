@@ -22,7 +22,7 @@ def generate(model, conditions_tensor, maps, device, out_dir,
                          gen_len=2048, temperatures=[1.5,0.7], top_k=-1, 
                          top_p=0.7, debug=False, varying_condition=None,
                          verbose=False, primers=[["<START>"]],
-                         min_n_instruments=3, label_conditions=None):
+                         min_n_instruments=2, label_conditions=None):
 
     os.makedirs(out_dir, exist_ok=True)
     

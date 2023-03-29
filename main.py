@@ -16,16 +16,16 @@ def play_music(midi_filename):
 while True:
     model_used = 'continuous_concat'
     project_abs_path = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion'
-    generations_rel_path = '\\output\\' + model_used + '\\generations\\inference\\'
+    generations_rel_path = '\\output\\' + model_used + '\\generations\\inference\\smooth_\\'
     generations_abs_path = project_abs_path + generations_rel_path
 
     print('loop started')
-    os.system('del /q output\\' + model_used + '\\generations\\inference\\*')
+    os.system('del /q ' + generations_abs_path + '*')
     os.chdir('src')
     tmp = os.getcwd()
     print('Current path: ', tmp)
     os.system(
-        'python generate.py --gen_len 320 --model_dir ' + model_used + ' --conditioning ' + model_used + ' --valence -1 1 1 1 1 --arousal -0.5 1 1 1 1')
+        'python generate.py --smooth_change --max_condition 0 --gen_len 160 --model_dir ' + model_used + ' --conditioning ' + model_used + ' --valence 1 --arousal -1')
     os.chdir('..')
     tmp = os.getcwd()
     print('Current path: ', tmp)
@@ -47,6 +47,10 @@ while True:
     pygame.mixer.music.set_volume(0.8)
 
     for i, file in enumerate(files):
+
+        if not file.endswith('.mid'):
+            continue
+
         midi_filename = file
         print('playing ', i, ' file')
 
@@ -61,6 +65,6 @@ while True:
             pygame.mixer.music.stop()
             raise SystemExit
 
-    os.chdir('..\\..\\..\\..')
+    os.chdir('..\\..\\..\\..\\..')
     print('finished, repeating loop...')
 
