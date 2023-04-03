@@ -9,6 +9,8 @@ import datetime
 from utils import get_n_instruments
 from models.build_model import build_model
 from data.data_processing_reverse import ind_tensor_to_mid, ind_tensor_to_str
+sys.path.insert(1, 'C:\\Users\\franc\\PycharmProjects\\midi-emotion')
+import my_utils
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -383,7 +385,11 @@ if __name__ == '__main__':
         primers = [["<START>"] for _ in range(args.batch_size)]
 
     elif args.conditioning in ["continuous_token", "continuous_concat"]:
-        primers = [["<START>"]]
+
+        bars_primer, _ = my_utils.import_primers()
+
+        # primers = [["<START>"]]
+        primers = bars_primer
         discrete_conditions = None
                     
     for i in range(args.num_runs):

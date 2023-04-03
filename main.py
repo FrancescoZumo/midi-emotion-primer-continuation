@@ -2,6 +2,9 @@ from os.path import isfile, join
 import os
 import time
 import pygame
+import sys
+import numpy as np
+import my_utils
 
 
 def play_music(midi_filename):
@@ -14,7 +17,7 @@ def play_music(midi_filename):
 
 
 while True:
-    model_used = 'discrete_token'
+    model_used = 'continuous_token'
     project_abs_path = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion'
     generations_rel_path = '\\output\\' + model_used + '\\generations\\inference'
     generations_abs_path = project_abs_path + generations_rel_path
@@ -22,6 +25,12 @@ while True:
     valence = 0
     arousal = 0
 
+    primers, maps = my_utils.import_primers()
+
+    # questa roba da errore, capisci perché
+    # prova asemplicemente prendere un midi di quelli giusti in input, magari è quello che sminchia la variabile usata come primer
+    primer_inds = [[maps["tuple2idx"][symbol] for symbol in primer] for primer in primers]
+    
     print('loop started')
     os.system('del /q ' + generations_abs_path + '\\*')
     os.chdir('src')
