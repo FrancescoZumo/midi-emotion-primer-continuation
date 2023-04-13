@@ -11,6 +11,8 @@ from models.build_model import build_model
 from data.data_processing_reverse import ind_tensor_to_mid, ind_tensor_to_str
 sys.path.insert(1, 'C:\\Users\\franc\\PycharmProjects\\midi-emotion')
 import my_utils
+import itertools
+from tqdm import tqdm
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -20,9 +22,9 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 def generate(model, maps, device, out_dir, conditioning, short_filename=False,
-                penalty_coeff=0.5, discrete_conditions=None, continuous_conditions=None,
+                penalty_coeff=0.9, discrete_conditions=None, continuous_conditions=None,
                     max_input_len=1024, amp=True, step=None, 
-                    gen_len=2048, temperatures=[1.2,1.2], top_k=-1, 
+                    gen_len=2048, temperatures=[1, 1], top_k=-1, 
                     top_p=0.7, debug=False, varying_condition=None, seed=-1,
                     verbose=False, primers=[["<START>"]], min_n_instruments=2):
 
@@ -63,8 +65,12 @@ def generate(model, maps, device, out_dir, conditioning, short_filename=False,
 
     if not isinstance(primers, list):
         primers = [[primers]]
-    primer_inds = [[maps["tuple2idx"][symbol] for symbol in primer] \
+    # added tuple to fix bug, maybe for newer python/lib version
+    primer_inds = [[maps["tuple2idx"][tuple(symbol)] for symbol in primer] \
         for primer in primers]
+     
+    # code added to fix different length bug, merging all lists in single one
+    primer_inds = [list(itertools.chain.from_iterable(primer_inds))]
 
     gen_inds = torch.LongTensor(primer_inds)
 
@@ -92,11 +98,10 @@ def generate(model, maps, device, out_dir, conditioning, short_filename=False,
     gen_inds = gen_inds.t().to(device)
 
     with torch.no_grad():
-        i = 0
-        while i < gen_len:
-            i += 1
-            if verbose:
-                print(gen_len - i, end=" ", flush=True)
+        for i in tqdm(range(gen_len)):
+            #if verbose:
+                # usa tqdm
+                # print(gen_len - i, end=" ", flush=True)
 
             gen_song_tensor = torch.cat((gen_song_tensor, gen_inds), 0)
 
@@ -261,6 +266,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
 
     parser.add_argument('--model_dir', type=str, help='Directory with model', required=True)
+    parser.add_argument('--primer_path', type=str, help='Path to midi for conditioned generation', required=True)
     parser.add_argument('--no_cuda', action='store_true', help="Use CPU")
     parser.add_argument('--num_runs', type=int, help='Number of runs', default=1)
     parser.add_argument('--gen_len', type=int, help='Max generation len', default=4096)
@@ -385,10 +391,8 @@ if __name__ == '__main__':
         primers = [["<START>"] for _ in range(args.batch_size)]
 
     elif args.conditioning in ["continuous_token", "continuous_concat"]:
-
-        bars_primer, _ = my_utils.import_primers()
-
-        # primers = [["<START>"]]
+        # addet to condition from existing midi
+        bars_primer, _ = my_utils.import_primers(args.primer_path)
         primers = bars_primer
         discrete_conditions = None
                     
@@ -396,7 +400,9 @@ if __name__ == '__main__':
         primers_run = deepcopy(primers)
         discrete_conditions_run = deepcopy(discrete_conditions)
         continuous_conditions_run = deepcopy(continuous_conditions)
+        #print('check conditions', primers_run, discrete_conditions_run, continuous_conditions_run)
         while not (primers_run == [] or discrete_conditions_run == [] or continuous_conditions_run == []):
+            print('running generate.py')
             primers_run, discrete_conditions_run, continuous_conditions_run = generate(
                         model, maps, device, 
                         midi_output_dir, args.conditioning, discrete_conditions=discrete_conditions_run, 

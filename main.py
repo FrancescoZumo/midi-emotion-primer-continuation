@@ -1,52 +1,13 @@
-from os.path import isfile, join
+import pygame
+import custom_generation_utils as custom_utils
+import pandas as pd
+from multiprocessing import Process
 import os
 import time
-import pygame
-import sys
-import numpy as np
 import my_utils
 
 
-def play_music(midi_filename):
-    '''Stream music_file in a blocking manner'''
-    clock = pygame.time.Clock()
-    pygame.mixer.music.load(midi_filename)
-    pygame.mixer.music.play()
-    while pygame.mixer.music.get_busy():
-        clock.tick(30)  # check if playback has finished
-
-
-while True:
-    model_used = 'continuous_token'
-    project_abs_path = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion'
-    generations_rel_path = '\\output\\' + model_used + '\\generations\\inference'
-    generations_abs_path = project_abs_path + generations_rel_path
-
-    valence = 0
-    arousal = 0
-
-    primers, maps = my_utils.import_primers()
-
-    # questa roba da errore, capisci perché
-    # prova asemplicemente prendere un midi di quelli giusti in input, magari è quello che sminchia la variabile usata come primer
-    primer_inds = [[maps["tuple2idx"][symbol] for symbol in primer] for primer in primers]
-    
-    print('loop started')
-    os.system('del /q ' + generations_abs_path + '\\*')
-    os.chdir('src')
-    tmp = os.getcwd()
-    print('Current path: ', tmp)
-    os.system('python generate.py --gen_len 320 --model_dir ' + model_used + ' --conditioning ' + model_used + 
-              ' --batch_size 1 --valence '+ str(valence) + ' --arousal ' + str(arousal))
-    os.chdir('..')
-    tmp = os.getcwd()
-    print('Current path: ', tmp)
-
-    files = [f[:] for f in os.listdir(generations_abs_path) if isfile(join(generations_abs_path, f))]
-
-    os.chdir(generations_rel_path[1:])
-    tmp = os.getcwd()
-    print('Current path: ', tmp)
+if __name__ == '__main__':
 
     # mixer config
     freq = 44100  # audio CD quality
@@ -56,27 +17,91 @@ while True:
     pygame.mixer.init(freq, bitsize, channels, buffer)
 
     # optional volume 0 to 1.0
-    pygame.mixer.music.set_volume(0.8)
+    pygame.mixer.music.set_volume(1)
+    old_p = None
+    first_iteration = True
 
-    for i, file in enumerate(files):
+    midi_reference = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion\\data_files\\botwForest.mid'
+    current_va_path = 'C:\\Users\\franc\\PycharmProjects\\VA_real_time\\output\\current_va.csv'
+    current_midi_folder = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion\\current_midi'
 
-        if not file.endswith('.mid'):
-            continue
+    gpu_scheduling = True
 
-        midi_filename = file
-        print('playing ', i, ' file')
+    while True:
+
+        if first_iteration:
+            # clear generated files
+            os.system('del /q ' + current_va_path)
+            os.system('del /q ' + current_midi_folder + '\\*')
+            try:
+                # use the midi reference for beginning
+                p = Process(target=custom_utils.play_music, args=(midi_reference, old_p.pid if old_p is not None else None))
+                p.start()
+                # p.join()
+                # custom_utils.play_music(path + '\\' + midi_conditioned)
+            except KeyboardInterrupt:
+                # if user hits Ctrl/C then exit
+                # (works only in console mode)
+                pygame.mixer.music.fadeout(1000)
+                pygame.mixer.music.stop()
+                raise SystemExit
+
+        # SCHEDULING: wait until current_va.csv is generated:
+        print('waiting for valence arousal estimation...')
+        while not os.path.isfile(current_va_path) and gpu_scheduling:
+            time.sleep(1)
+        print('MUSIC GENERATION started!')
+
+        if not first_iteration:
+            midi_reference = midi_conditioned
+            midi_conditioned_old = midi_conditioned
+        current_va = pd.read_csv(current_va_path)
+
+        valence = current_va['valence'][0]
+        arousal = current_va['arousal'][0]
+        midi_conditioned, path = custom_utils.generate_va_conditioned_midi(midi_reference, valence, arousal)
+        
+        # move file to current directory
+        os.system('move /Y ' + path + '\\' + midi_conditioned + ' ' + current_midi_folder + '\\' + midi_conditioned)
+        midi_conditioned = current_midi_folder + '\\' + midi_conditioned
+
+        # trim primer from generated midi
+        print('test trim')
+        midi_conditioned = my_utils.trim_primer_from_output(midi_conditioned, midi_reference)
+        print("test passed!")
+
+
+        #remove unwanted tracks
+        # mid = pretty_midi.PrettyMIDI(path + '\\' + midi_conditioned)
+        # remove drum tracks for now NOT WORKING
+        # for instr in mid.instruments:
+        #    if instr.is_drum:
+        #        instr.notes = []
+        # mid.write(midi_conditioned)
+
+        # sett current p as old_p, so it is stopped
+        old_p = p
 
         # listen for interruptions
         try:
             # use the midi file you just saved
-            play_music(midi_filename)
+
+            p = Process(target=custom_utils.play_music, args=(midi_conditioned, old_p.pid if old_p is not None else None))
+            p.start()
+            # p.join()
+            # custom_utils.play_music(path + '\\' + midi_conditioned)
         except KeyboardInterrupt:
             # if user hits Ctrl/C then exit
             # (works only in console mode)
             pygame.mixer.music.fadeout(1000)
             pygame.mixer.music.stop()
             raise SystemExit
+        
+        #removing old midi
+        if not first_iteration:
+            os.system('del /q ' + midi_conditioned_old)
+        
+        os.system('del /q ' + current_va_path)
 
-    os.chdir('..\\..\\..\\..')
-    print('finished, repeating loop...')
-
+        print('MUSIC GENERATION completed...')
+        first_iteration = False
