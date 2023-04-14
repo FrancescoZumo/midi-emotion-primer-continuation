@@ -17,11 +17,12 @@ if __name__ == '__main__':
     pygame.mixer.init(freq, bitsize, channels, buffer)
 
     # optional volume 0 to 1.0
-    pygame.mixer.music.set_volume(1)
+    pygame.mixer.music.set_volume(0.8)
     old_p = None
     first_iteration = True
 
     midi_reference = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion\\data_files\\botwForest.mid'
+    #midi_reference = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion\\data_files\\2023_04_13_10_39_53_0_V-035_A004_cut2.mid'
     current_va_path = 'C:\\Users\\franc\\PycharmProjects\\VA_real_time\\output\\current_va.csv'
     current_midi_folder = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion\\current_midi'
 
@@ -45,6 +46,11 @@ if __name__ == '__main__':
                 pygame.mixer.music.fadeout(1000)
                 pygame.mixer.music.stop()
                 raise SystemExit
+
+        # DEBUG!
+        #primers, maps = my_utils.import_primers(midi_reference)
+        #primer_inds = [[maps["tuple2idx"][tuple(symbol)] for symbol in primer] \
+        #for primer in primers]
 
         # SCHEDULING: wait until current_va.csv is generated:
         print('waiting for valence arousal estimation...')

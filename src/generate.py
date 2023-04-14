@@ -22,7 +22,7 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 def generate(model, maps, device, out_dir, conditioning, short_filename=False,
-                penalty_coeff=0.9, discrete_conditions=None, continuous_conditions=None,
+                penalty_coeff=0.8, discrete_conditions=None, continuous_conditions=None,
                     max_input_len=1024, amp=True, step=None, 
                     gen_len=2048, temperatures=[1, 1], top_k=-1, 
                     top_p=0.7, debug=False, varying_condition=None, seed=-1,
@@ -224,6 +224,9 @@ def generate(model, maps, device, out_dir, conditioning, short_filename=False,
             out_path_mid = os.path.join(out_dir, out_file_path)
 
             symbols = ind_tensor_to_str(gen_song_tensor[:, i], maps["idx2tuple"], maps["idx2event"])
+
+            print("")
+
             n_instruments = get_n_instruments(symbols)
 
             if verbose:

@@ -36,13 +36,14 @@ def generate_va_conditioned_midi(midi_reference, valence, arousal):
     generations_rel_path = '\\output\\' + model_used + '\\generations\\inference'
     generations_abs_path = project_abs_path + generations_rel_path
 
-    gen_len = 500
+    gen_len = 512
     
     print('loop started')
     os.system('del /q ' + generations_abs_path + '\\*')
     os.chdir('src')
     tmp = os.getcwd()
     print('Current path: ', tmp)
+    print('midi_reference: ', midi_reference)
     os.system('python generate.py --gen_len ' + str(gen_len) + ' --model_dir ' + model_used + ' --conditioning ' + model_used + 
               ' --batch_size 1 --valence '+ str(valence) + ' --arousal ' + str(arousal) + ' --primer_path ' + midi_reference)
     os.chdir('..')
