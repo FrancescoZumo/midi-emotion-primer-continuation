@@ -9,7 +9,7 @@ import datetime
 from utils import get_n_instruments
 from models.build_model import build_model
 from data.data_processing_reverse import ind_tensor_to_mid, ind_tensor_to_str
-sys.path.insert(1, 'C:\\Users\\franc\\PycharmProjects\\midi-emotion')
+sys.path.insert(1, 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion')
 import my_utils
 import itertools
 from tqdm import tqdm
@@ -22,9 +22,9 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 def generate(model, maps, device, out_dir, conditioning, short_filename=False,
-                penalty_coeff=0.8, discrete_conditions=None, continuous_conditions=None,
+                penalty_coeff=0.5, discrete_conditions=None, continuous_conditions=None,
                     max_input_len=1024, amp=True, step=None, 
-                    gen_len=2048, temperatures=[1, 1], top_k=-1, 
+                    gen_len=2048, temperatures=[1.2, 0.7], top_k=-1, 
                     top_p=0.7, debug=False, varying_condition=None, seed=-1,
                     verbose=False, primers=[["<START>"]], min_n_instruments=2):
 

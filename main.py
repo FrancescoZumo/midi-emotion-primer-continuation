@@ -21,10 +21,10 @@ if __name__ == '__main__':
     old_p = None
     first_iteration = True
 
-    midi_reference = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion\\data_files\\botwForest.mid'
-    #midi_reference = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion\\data_files\\2023_04_13_10_39_53_0_V-035_A004_cut2.mid'
-    current_va_path = 'C:\\Users\\franc\\PycharmProjects\\VA_real_time\\output\\current_va.csv'
-    current_midi_folder = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion\\current_midi'
+    midi_reference = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\data_files\\botwForest.mid'
+    #midi_reference = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\data_files\\2023_04_13_10_39_53_0_V-035_A004_cut2.mid'
+    current_va_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\VA_real_time\\output\\current_va.csv'
+    current_midi_folder = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\current_midi'
 
     gpu_scheduling = True
 
@@ -63,8 +63,9 @@ if __name__ == '__main__':
             midi_conditioned_old = midi_conditioned
         current_va = pd.read_csv(current_va_path)
 
-        valence = current_va['valence'][0]
-        arousal = current_va['arousal'][0]
+        valence = current_va['valence'][len(current_va)-1]
+        arousal = current_va['arousal'][len(current_va)-1]
+        print("valence: ", valence, " arousal: ", arousal)
         midi_conditioned, path = custom_utils.generate_va_conditioned_midi(midi_reference, valence, arousal)
         
         # move file to current directory

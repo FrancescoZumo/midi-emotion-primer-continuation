@@ -32,7 +32,7 @@ def play_music(midi_filename, old_p_pid):
 
 def generate_va_conditioned_midi(midi_reference, valence, arousal):
     model_used = 'continuous_token'
-    project_abs_path = 'C:\\Users\\franc\\PycharmProjects\\midi-emotion'
+    project_abs_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion'
     generations_rel_path = '\\output\\' + model_used + '\\generations\\inference'
     generations_abs_path = project_abs_path + generations_rel_path
 
