@@ -36,7 +36,7 @@ def generate_va_conditioned_midi(midi_reference, valence, arousal):
     generations_rel_path = '\\output\\' + model_used + '\\generations\\inference'
     generations_abs_path = project_abs_path + generations_rel_path
 
-    gen_len = 512
+    gen_len = 256
     
     print('loop started')
     os.system('del /q ' + generations_abs_path + '\\*')

@@ -21,7 +21,7 @@ if __name__ == '__main__':
     old_p = None
     first_iteration = True
 
-    midi_reference = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\data_files\\botwForest.mid'
+    midi_reference = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\data_files\\BreathoftheWildCave.mid'
     #midi_reference = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\data_files\\2023_04_13_10_39_53_0_V-035_A004_cut2.mid'
     current_va_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\VA_real_time\\output\\current_va.csv'
     current_midi_folder = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\current_midi'
@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
         # trim primer from generated midi
         print('test trim')
-        midi_conditioned = my_utils.trim_primer_from_output(midi_conditioned, midi_reference)
+        #midi_conditioned = my_utils.trim_primer_from_output(midi_conditioned, midi_reference)
         print("test passed!")
 
 
