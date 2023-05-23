@@ -5,6 +5,7 @@ from multiprocessing import Process
 import os
 import time
 import my_utils
+from mido import MidiFile
 
 
 if __name__ == '__main__':
@@ -59,7 +60,7 @@ if __name__ == '__main__':
         print('MUSIC GENERATION started!')
 
         if not first_iteration:
-            midi_reference = midi_conditioned
+            #midi_reference = midi_conditioned
             midi_conditioned_old = midi_conditioned
         current_va = pd.read_csv(current_va_path)
 
@@ -74,8 +75,18 @@ if __name__ == '__main__':
 
         # trim primer from generated midi
         print('test trim')
-        #midi_conditioned = my_utils.trim_primer_from_output(midi_conditioned, midi_reference)
+        midi_conditioned = my_utils.trim_primer_from_output(midi_conditioned, midi_reference)
         print("test passed!")
+
+        print('remove all tracks except piano')
+        mid = MidiFile(midi_conditioned)
+        #del mid.tracks[5]
+        #del mid.tracks[4]
+        #del mid.tracks[3]
+        del mid.tracks[1]
+        mid.save(midi_conditioned)
+        print('done')
+
 
 
         #remove unwanted tracks

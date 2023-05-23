@@ -24,7 +24,7 @@ def chunks(lst, n):
 def generate(model, maps, device, out_dir, conditioning, short_filename=False,
                 penalty_coeff=0.5, discrete_conditions=None, continuous_conditions=None,
                     max_input_len=1024, amp=True, step=None, 
-                    gen_len=2048, temperatures=[0.2, 0.2], top_k=-1, 
+                    gen_len=2048, temperatures=[1.2, 0.7], top_k=-1, 
                     top_p=0.7, debug=False, varying_condition=None, seed=-1,
                     verbose=False, primers=[["<START>"]], min_n_instruments=2):
 
