@@ -6,6 +6,7 @@ import os
 import time
 import my_utils
 from mido import MidiFile
+import numpy as np
 
 
 if __name__ == '__main__':
@@ -26,10 +27,18 @@ if __name__ == '__main__':
     #midi_reference = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\data_files\\2023_04_13_10_39_53_0_V-035_A004_cut2.mid'
     current_va_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\VA_real_time\\output\\current_va.csv'
     current_midi_folder = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\current_midi'
+    va_history_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\VA_real_time\\output\\DarkSouls3Midir.csv'
+
+    inference_modes = {
+        0: 'live',
+        1: 'from_file',
+    }
+    inference_choice = inference_modes[1]
 
     gpu_scheduling = True
+    generation_counter = 0
 
-    while True:
+    while inference_choice == inference_modes[0]:
 
         if first_iteration:
             # clear generated files
@@ -48,11 +57,6 @@ if __name__ == '__main__':
                 pygame.mixer.music.stop()
                 raise SystemExit
 
-        # DEBUG!
-        #primers, maps = my_utils.import_primers(midi_reference)
-        #primer_inds = [[maps["tuple2idx"][tuple(symbol)] for symbol in primer] \
-        #for primer in primers]
-
         # SCHEDULING: wait until current_va.csv is generated:
         print('waiting for valence arousal estimation...')
         while not os.path.isfile(current_va_path) and gpu_scheduling:
@@ -68,16 +72,22 @@ if __name__ == '__main__':
         arousal = current_va['arousal'][len(current_va)-1]
         print("valence: ", valence, " arousal: ", arousal)
         midi_conditioned, path = custom_utils.generate_va_conditioned_midi(midi_reference, valence, arousal)
-        
+        generation_counter+=1
         # move file to current directory
         os.system('move /Y ' + path + '\\' + midi_conditioned + ' ' + current_midi_folder + '\\' + midi_conditioned)
         midi_conditioned = current_midi_folder + '\\' + midi_conditioned
+
+        # rename file accordingly
+        new_name = current_midi_folder + '\\' + str(valence) + str(arousal) + '_' + str(generation_counter) + '.mid'
+        os.system('move /Y ' + midi_conditioned + ' ' + new_name)
+        midi_conditioned = new_name
 
         # trim primer from generated midi
         print('test trim')
         midi_conditioned = my_utils.trim_primer_from_output(midi_conditioned, midi_reference)
         print("test passed!")
 
+        '''
         print('remove all tracks except piano')
         mid = MidiFile(midi_conditioned)
         #del mid.tracks[5]
@@ -86,17 +96,7 @@ if __name__ == '__main__':
         del mid.tracks[1]
         mid.save(midi_conditioned)
         print('done')
-
-
-
-        #remove unwanted tracks
-        # mid = pretty_midi.PrettyMIDI(path + '\\' + midi_conditioned)
-        # remove drum tracks for now NOT WORKING
-        # for instr in mid.instruments:
-        #    if instr.is_drum:
-        #        instr.notes = []
-        # mid.write(midi_conditioned)
-
+        '''
         # sett current p as old_p, so it is stopped
         old_p = p
 
@@ -116,10 +116,49 @@ if __name__ == '__main__':
             raise SystemExit
         
         #removing old midi
-        if not first_iteration:
-            os.system('del /q ' + midi_conditioned_old)
+        #if not first_iteration:
+        #    os.system('del /q ' + midi_conditioned_old)
         
         os.system('del /q ' + current_va_path)
 
         print('MUSIC GENERATION completed...')
         first_iteration = False
+    
+    if inference_choice == inference_modes[1]:
+
+        if not os.path.isfile(va_history_path):
+            print('file not found: breaking loop')
+            quit()
+        else:
+            va_dataframe = pd.read_csv(va_history_path)
+
+        # process dataframe
+        va_dataframe = my_utils.va_series_processing(va_dataframe)
+
+        # setting threshold:
+        threshold_abs_inc_ratio_val = np.nanpercentile(va_dataframe['abs_inc_ratio_val'], 80)
+        threshold_abs_inc_ratio_ar = np.nanpercentile(va_dataframe['abs_inc_ratio_ar'], 80)
+
+        for index, row in va_dataframe.iterrows():
+
+            if not (row['abs_inc_ratio_val'] > threshold_abs_inc_ratio_val or 
+                    row['abs_inc_ratio_ar'] > threshold_abs_inc_ratio_ar):
+                continue
+            valence = row['valence']
+            arousal = row['arousal']
+            print("valence: ", valence, " arousal: ", arousal)
+            midi_conditioned, path = custom_utils.generate_va_conditioned_midi(midi_reference, valence, arousal)
+            generation_counter+=1
+            # move file to current directory
+            os.system('move /Y ' + path + '\\' + midi_conditioned + ' ' + current_midi_folder + '\\' + midi_conditioned)
+            midi_conditioned = current_midi_folder + '\\' + midi_conditioned
+
+            # rename file accordingly
+            new_name = current_midi_folder + '\\' + str(valence) + str(arousal) + '_' + str(index) + '.mid'
+            os.system('move /Y ' + midi_conditioned + ' ' + new_name)
+            midi_conditioned = new_name
+
+            # trim primer from generated midi
+            print('test trim')
+            midi_conditioned = my_utils.trim_primer_from_output(midi_conditioned, midi_reference)
+            print("test passed!")

@@ -62,3 +62,56 @@ def trim_primer_from_output(midi_output, midi_reference):
         out_file = midi_output[:-4] + "_cut.mid"
         mid_cut.write(out_file)
     return out_file
+
+def va_series_processing(va_dataframe):
+    # get abs(incremental ratio)
+    abs_inc_ratio_val = []
+    abs_inc_ratio_ar = []
+    for index, row in va_dataframe.iterrows():
+        if index == 0:
+            previous_val = row['valence']
+            previous_ar = row['arousal']
+            abs_inc_ratio_val.append(np.nan)
+            abs_inc_ratio_ar.append(np.nan)
+            continue
+        abs_inc_ratio_val.append(np.abs((row['valence'] - previous_val)/2))
+        abs_inc_ratio_ar.append(np.abs((row['arousal'] - previous_ar)/2))
+        previous_val = row['valence']
+        previous_ar = row['arousal']
+    if not len(abs_inc_ratio_ar) == len(va_dataframe):
+        print('fix bug here please')
+        quit()
+    va_dataframe['abs_inc_ratio_val'] = abs_inc_ratio_val
+    va_dataframe['abs_inc_ratio_ar'] = abs_inc_ratio_ar
+    
+    # get std
+    va_dataframe['std_abs_inc_ratio_val'] = np.nanstd(abs_inc_ratio_val)
+    va_dataframe['std_abs_inc_ratio_ar'] = np.nanstd(abs_inc_ratio_ar)
+
+    # get moving average of current series
+    ma_abs_inc_ratio_val = []
+    ma_abs_inc_ratio_ar = []
+    previous_val = []
+    previous_ar = []
+    window = 5
+    for index, row in va_dataframe.iterrows():
+        # update previous n val/ar list
+        previous_val.append(row['abs_inc_ratio_val'])
+        previous_ar.append(row['abs_inc_ratio_ar'])
+        # if first window-1 iteration, return nan
+        if index < window - 1:
+            ma_abs_inc_ratio_val.append(np.nan)
+            ma_abs_inc_ratio_ar.append(np.nan)
+            continue
+        # calculate moving average
+        ma_abs_inc_ratio_val.append(np.mean(previous_val)/window)
+        ma_abs_inc_ratio_ar.append(np.mean(previous_ar)/window)
+
+        # remove old value
+        previous_val.pop(0)
+        previous_ar.pop(0)
+
+    va_dataframe['ma_abs_inc_ratio_val'] = ma_abs_inc_ratio_val
+    va_dataframe['ma_abs_inc_ratio_ar'] = ma_abs_inc_ratio_ar
+
+    return va_dataframe
