@@ -1,5 +1,4 @@
 import pygame
-import custom_generation_utils as custom_utils
 import pandas as pd
 from multiprocessing import Process
 import os
@@ -27,7 +26,7 @@ if __name__ == '__main__':
     #midi_reference = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\data_files\\2023_04_13_10_39_53_0_V-035_A004_cut2.mid'
     current_va_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\VA_real_time\\output\\current_va.csv'
     current_midi_folder = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\current_midi'
-    va_history_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\VA_real_time\\output\\DarkSouls3Midir.csv'
+    va_history_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\VA_real_time\\output\\zelda.csv'
 
     inference_modes = {
         0: 'live',
@@ -46,10 +45,10 @@ if __name__ == '__main__':
             os.system('del /q ' + current_midi_folder + '\\*')
             try:
                 # use the midi reference for beginning
-                p = Process(target=custom_utils.play_music, args=(midi_reference, old_p.pid if old_p is not None else None))
+                p = Process(target=my_utils.play_music, args=(midi_reference, old_p.pid if old_p is not None else None))
                 p.start()
                 # p.join()
-                # custom_utils.play_music(path + '\\' + midi_conditioned)
+                # my_utils.play_music(path + '\\' + midi_conditioned)
             except KeyboardInterrupt:
                 # if user hits Ctrl/C then exit
                 # (works only in console mode)
@@ -71,7 +70,7 @@ if __name__ == '__main__':
         valence = current_va['valence'][len(current_va)-1]
         arousal = current_va['arousal'][len(current_va)-1]
         print("valence: ", valence, " arousal: ", arousal)
-        midi_conditioned, path = custom_utils.generate_va_conditioned_midi(midi_reference, valence, arousal)
+        midi_conditioned, path = my_utils.generate_va_conditioned_midi(midi_reference, valence, arousal)
         generation_counter+=1
         # move file to current directory
         os.system('move /Y ' + path + '\\' + midi_conditioned + ' ' + current_midi_folder + '\\' + midi_conditioned)
@@ -104,10 +103,10 @@ if __name__ == '__main__':
         try:
             # use the midi file you just saved
 
-            p = Process(target=custom_utils.play_music, args=(midi_conditioned, old_p.pid if old_p is not None else None))
+            p = Process(target=my_utils.play_music, args=(midi_conditioned, old_p.pid if old_p is not None else None))
             p.start()
             # p.join()
-            # custom_utils.play_music(path + '\\' + midi_conditioned)
+            # my_utils.play_music(path + '\\' + midi_conditioned)
         except KeyboardInterrupt:
             # if user hits Ctrl/C then exit
             # (works only in console mode)
@@ -124,7 +123,10 @@ if __name__ == '__main__':
         print('MUSIC GENERATION completed...')
         first_iteration = False
     
+
     if inference_choice == inference_modes[1]:
+
+
 
         if not os.path.isfile(va_history_path):
             print('file not found: breaking loop')
@@ -139,22 +141,31 @@ if __name__ == '__main__':
         threshold_abs_inc_ratio_val = np.nanpercentile(va_dataframe['abs_inc_ratio_val'], 80)
         threshold_abs_inc_ratio_ar = np.nanpercentile(va_dataframe['abs_inc_ratio_ar'], 80)
 
-        for index, row in va_dataframe.iterrows():
+        generation_interval = 3
+        last_gen_index = 0
 
+        for index, row in va_dataframe.iterrows():
+            # check threshold
             if not (row['abs_inc_ratio_val'] > threshold_abs_inc_ratio_val or 
                     row['abs_inc_ratio_ar'] > threshold_abs_inc_ratio_ar):
+                continue
+            # do not generate if last generation happened in previous generation_interval samples
+            if (index - last_gen_index) < generation_interval:
+                print("last generation too close, continuing")
                 continue
             valence = row['valence']
             arousal = row['arousal']
             print("valence: ", valence, " arousal: ", arousal)
-            midi_conditioned, path = custom_utils.generate_va_conditioned_midi(midi_reference, valence, arousal)
+            midi_conditioned, path = my_utils.generate_va_conditioned_midi(midi_reference, valence, arousal, gen_len=512)
             generation_counter+=1
+            last_gen_index = index
+
             # move file to current directory
             os.system('move /Y ' + path + '\\' + midi_conditioned + ' ' + current_midi_folder + '\\' + midi_conditioned)
             midi_conditioned = current_midi_folder + '\\' + midi_conditioned
 
             # rename file accordingly
-            new_name = current_midi_folder + '\\' + str(valence) + str(arousal) + '_' + str(index) + '.mid'
+            new_name = current_midi_folder + '\\'  + 't_' + str(index) + '__' + "{:.2f}_{:.2f}__".format(valence, arousal) + '.mid'
             os.system('move /Y ' + midi_conditioned + ' ' + new_name)
             midi_conditioned = new_name
 
