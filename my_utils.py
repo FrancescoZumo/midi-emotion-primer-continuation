@@ -91,7 +91,10 @@ def import_primers(midi_reference):
     file_duration, primer_duration = determine_primer_duration(midi_reference)
     print("midi reference duration: ", file_duration, " seconds")
 
-    mid_cut = data_proc.trim_midi(mid, file_duration - primer_duration, file_duration, True)
+    #cut from end
+    #mid_cut = data_proc.trim_midi(mid, file_duration - primer_duration, file_duration, True)
+    #cut from beginning
+    mid_cut = data_proc.trim_midi(mid, TRIM_BEGIN, TRIM_END, True)
 
     maps = data_proc.get_maps()
 
@@ -99,6 +102,9 @@ def import_primers(midi_reference):
     for i, _ in enumerate(mid_cut.instruments):
         mid_cut.instruments[i].name = 'PIANO'
     # note_events = data_proc.mid_to_timed_tuples(mid, maps['event2idx'])
+
+    # save primer as midi
+    mid_cut.write(midi_reference[:len(midi_reference)-4] + '_primer' +'.mid')
 
     bars_primer = data_proc.mid_to_bars(mid_cut, maps['event2idx'])
     return bars_primer, maps

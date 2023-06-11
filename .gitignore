@@ -2,6 +2,7 @@ __pycache__
 .vscode
 data_files/*
 output/*
+vgmidi/*
 !.gitkeep
 .cache
 *.mid
