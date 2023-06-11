@@ -26,6 +26,7 @@ if __name__ == '__main__':
 
     # parameters
     gen_len = 512
+    video_max_length = 120
     inference_modes = {
         0: 'live',
         1: 'from_file',
@@ -157,6 +158,10 @@ if __name__ == '__main__':
             last_gen_index = 0
 
             for index, row in va_dataframe.iterrows():
+                if index > video_max_length:
+                    print("maximum length reached, stopping")
+                    break
+
                 # check threshold
                 if not (row['abs_inc_ratio_val'] > threshold_abs_inc_ratio_val or 
                         row['abs_inc_ratio_ar'] > threshold_abs_inc_ratio_ar):
@@ -177,11 +182,10 @@ if __name__ == '__main__':
                 midi_conditioned = output_midi_folder + '\\' + midi_conditioned
 
                 # rename file accordingly
-                new_name = output_midi_folder + '\\'  + 't_' + str(index) + '__' + "{:.2f}_{:.2f}__".format(valence, arousal) + '.mid'
+                new_name = output_midi_folder + '\\'  + 't_' + "{:03d}".format(index) + '__' + "{:.2f}_{:.2f}_".format(valence, arousal) + '.mid'
                 os.system('move /Y ' + midi_conditioned + ' ' + new_name)
                 midi_conditioned = new_name
 
-                # trim primer from generated midi
-                print('test trim')
-                midi_conditioned = my_utils.trim_primer_from_output(midi_conditioned, midi_reference)
-                print("test passed!")
+                # trim primer from generated midi and save final file
+                midi_conditioned = my_utils.trim_primer_from_output(midi_conditioned, midi_reference, live_mode=False)
+

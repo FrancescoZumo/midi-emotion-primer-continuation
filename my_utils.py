@@ -6,6 +6,7 @@ from os.path import isfile, join
 import os
 import pygame
 import signal
+import midi2audio
 
 TRIM_BEGIN = 0
 TRIM_END = 10
@@ -109,7 +110,7 @@ def import_primers(midi_reference):
     bars_primer = data_proc.mid_to_bars(mid_cut, maps['event2idx'])
     return bars_primer, maps
 
-def trim_primer_from_output(midi_output, midi_reference):
+def trim_primer_from_output(midi_output, midi_reference, live_mode=True):
     # determine trim length
     ref_duration, primer_duration = determine_primer_duration(midi_reference)
     out_duration, _ = determine_primer_duration(midi_output)
@@ -117,7 +118,7 @@ def trim_primer_from_output(midi_output, midi_reference):
 
     print(ref_duration, primer_duration, out_duration)
 
-    if out_duration - primer_duration < 9:
+    if out_duration - primer_duration < 9 and live_mode:
         print('keeping primer inside generated file')
         out_file = midi_output
     else:
@@ -127,6 +128,10 @@ def trim_primer_from_output(midi_output, midi_reference):
 
         out_file = midi_output[:-4] + "_cut.mid"
         mid_cut.write(out_file)
+        #remove output file with primer
+        if not live_mode:
+            os.system('del /q ' + midi_output)
+
     return out_file
 
 def va_series_processing(va_dataframe):
@@ -181,3 +186,63 @@ def va_series_processing(va_dataframe):
     va_dataframe['ma_abs_inc_ratio_ar'] = ma_abs_inc_ratio_ar
 
     return va_dataframe
+
+def generate_final_midi(folder, gen_min_interval, start_t, end_t):
+
+    path_to_midis = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\current_midi\\' + folder
+    available_midis = os.listdir(path_to_midis)
+    output_final_midis = path_to_midis + '\\final'
+
+    try:
+        os.mkdir(output_final_midis)
+    except FileExistsError:
+        print('directory already existing')
+
+
+    prev_midi_file = ''
+    prev_t = -np.inf
+    prev_mid = []
+    prev_mid_duration = np.nan
+    final_mid_files = []
+    for midi_file in available_midis:
+        
+        # keep only files with primer trimmed
+        if midi_file.find('cut') < 0:
+            continue
+        
+        curr_t = int(midi_file[2:5])
+
+        # if curr_t is acceptable and satisfies gen_min_interval
+        if curr_t >= start_t and curr_t <= end_t and (curr_t - prev_t) > gen_min_interval:
+            curr_mid = MidiFile(path_to_midis +'\\'+midi_file)
+            curr_mid_duration  = curr_mid.length
+            
+            # if first iteration, continue
+            if prev_t == -np.inf:
+                # update prev variables
+                prev_midi_file, prev_t, prev_mid, prev_mid_duration = midi_file, curr_t, curr_mid, curr_mid_duration
+                continue
+            
+            # determine prev mid desired duration
+            prev_mid_desired_duration = curr_t - prev_t
+            final_midi_name = prev_midi_file[:len(prev_midi_file)-8] + '_final.mid'
+
+            if prev_mid_duration < prev_mid_desired_duration:
+                #TODO: loop prev midi two or n times
+                print("TODO: for now doing nothing")
+            else:
+                #TODO: trim prev midi to desired duration
+                prev_mid = data_proc.trim_midi(path_to_midis + '\\' + prev_midi_file, 0, prev_mid_desired_duration, True)
+            prev_mid.save(output_final_midis + '\\' + final_midi_name)
+            
+            # update final midi
+            #final_mid = concatenate_midis(final_mid, prev_mid)
+            final_mid_files.append(final_midi_name)
+
+            # update prev variables
+            prev_midi_file, prev_t, prev_mid, prev_mid_duration = midi_file, curr_t, curr_mid, curr_mid_duration
+    
+    # concatenate last file
+    final_midi_name = prev_midi_file[:len(prev_midi_file)-9] + '_final.mid'
+    prev_mid.save(output_final_midis + '\\' + final_midi_name)
+    final_mid_files.append(final_midi_name)
