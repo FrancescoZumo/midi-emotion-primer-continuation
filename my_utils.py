@@ -1,12 +1,12 @@
 import pretty_midi
 import src.data.data_processing as data_proc
-from mido import MidiFile
+from mido import MidiFile, tempo2bpm, MetaMessage
 import numpy as np
 from os.path import isfile, join
 import os
 import pygame
 import signal
-import midi2audio
+import mido
 
 TRIM_BEGIN = 0
 TRIM_END = 10
@@ -37,6 +37,10 @@ def generate_va_conditioned_midi(midi_reference, valence, arousal, gen_len):
     project_abs_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion'
     generations_rel_path = '\\output\\' + model_used + '\\generations\\inference'
     generations_abs_path = project_abs_path + generations_rel_path
+
+    print("getting midi reference tempo")
+    curr_mid = MidiFile(midi_reference)
+    midi_reference_tempo = get_tempo(curr_mid)
     
     print('loop started')
     os.system('del /q ' + generations_abs_path + '\\*')
@@ -67,7 +71,20 @@ def generate_va_conditioned_midi(midi_reference, valence, arousal, gen_len):
         print('playing ', i, ' file')
         break
 
+    
+
+    print("setting tempo of generated midi")
+    curr_mid = MidiFile(midi_conditioned)
+    for index, metamessage in enumerate(curr_mid.tracks[0]):
+        if metamessage.type == 'set_tempo':
+            curr_mid.tracks[0][index].tempo = midi_reference_tempo
+            break
+
+    curr_mid.save(midi_conditioned)
+
+    
     os.chdir('..\\..\\..\\..')
+
     return midi_conditioned, generations_abs_path
 
 def determine_primer_duration(midi_file):
@@ -129,8 +146,8 @@ def trim_primer_from_output(midi_output, midi_reference, live_mode=True):
         out_file = midi_output[:-4] + "_cut.mid"
         mid_cut.write(out_file)
         #remove output file with primer
-        if not live_mode:
-            os.system('del /q ' + midi_output)
+        #if not live_mode:
+        #    os.system('del /q ' + midi_output)
 
     return out_file
 
@@ -198,6 +215,7 @@ def generate_final_midi(folder, gen_min_interval, start_t, end_t):
     except FileExistsError:
         print('directory already existing')
 
+    os.system('del /q ' + output_final_midis + '\\*')
 
     prev_midi_file = ''
     prev_t = -np.inf
@@ -214,8 +232,9 @@ def generate_final_midi(folder, gen_min_interval, start_t, end_t):
 
         # if curr_t is acceptable and satisfies gen_min_interval
         if curr_t >= start_t and curr_t <= end_t and (curr_t - prev_t) > gen_min_interval:
-            curr_mid = MidiFile(path_to_midis +'\\'+midi_file)
-            curr_mid_duration  = curr_mid.length
+            curr_mid = pretty_midi.PrettyMIDI(path_to_midis +'\\'+midi_file)
+            curr_mid_duration  = curr_mid.get_end_time()
+            
             
             # if first iteration, continue
             if prev_t == -np.inf:
@@ -228,21 +247,45 @@ def generate_final_midi(folder, gen_min_interval, start_t, end_t):
             final_midi_name = prev_midi_file[:len(prev_midi_file)-8] + '_final.mid'
 
             if prev_mid_duration < prev_mid_desired_duration:
-                #TODO: loop prev midi two or n times
+                #TODO: loop prev midi n times
+                n_iterations = int(np.ceil(prev_mid_desired_duration % prev_mid_duration))
+                for iter in range(n_iterations, 0, -1):
+                    part = len(range(n_iterations, 0, -1)) - iter
+                    # bug da sistemare
+                    final_midi_name_part = output_final_midis + '\\' + 'part' + str(part) + '_' + final_midi_name
+                    if iter != 1:
+                        # save a copy of current midi
+                        prev_mid.write(final_midi_name_part)
+                        final_mid_files.append(final_midi_name_part)
+                    else:
+                        # last iteration, generare remaining seconds
+                        remaining_seconds = prev_mid_desired_duration - (prev_mid_duration * (n_iterations -1))
+                        prev_mid = data_proc.trim_midi(prev_mid, 0, remaining_seconds, True)
+                        prev_mid.write(final_midi_name_part)
+                        final_mid_files.append(final_midi_name_part)
+
                 print("TODO: for now doing nothing")
             else:
                 #TODO: trim prev midi to desired duration
-                prev_mid = data_proc.trim_midi(path_to_midis + '\\' + prev_midi_file, 0, prev_mid_desired_duration, True)
-            prev_mid.save(output_final_midis + '\\' + final_midi_name)
+                prev_mid = data_proc.trim_midi(prev_mid, 0, prev_mid_desired_duration, True)
+                prev_mid.write(output_final_midis + '\\' + final_midi_name)
             
-            # update final midi
-            #final_mid = concatenate_midis(final_mid, prev_mid)
-            final_mid_files.append(final_midi_name)
+                # update final midi
+                #final_mid = concatenate_midis(final_mid, prev_mid)
+                final_mid_files.append(final_midi_name)
 
             # update prev variables
             prev_midi_file, prev_t, prev_mid, prev_mid_duration = midi_file, curr_t, curr_mid, curr_mid_duration
     
     # concatenate last file
     final_midi_name = prev_midi_file[:len(prev_midi_file)-9] + '_final.mid'
-    prev_mid.save(output_final_midis + '\\' + final_midi_name)
-    final_mid_files.append(final_midi_name)
+    prev_mid.write(output_final_midis + '\\' + final_midi_name)
+    final_mid_files.append(final_midi_name) 
+
+
+
+def get_tempo(mid):
+    for msg in mid:     # Search for tempo
+        if msg.type == 'set_tempo':
+            return msg.tempo
+    return 500000       # If not found return default tempo

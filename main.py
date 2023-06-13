@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     # parameters
     gen_len = 512
-    video_max_length = 120
+    video_max_length = 60
     inference_modes = {
         0: 'live',
         1: 'from_file',
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     for video in available_videos:
 
         # skip some videos:
-        if video in ['astroneer.mp4']:
+        if video in []:
             print('skipping ' + video)
             continue
         

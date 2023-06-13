@@ -5,19 +5,11 @@ from mido import MidiFile
 
 folder = 'dark_souls'
 
-#my_utils.generate_final_midi(folder, 5, 0, 60)
 
-path_to_midis = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\current_midi\\' + folder + '\\final'
-list_of_files = os.listdir(path_to_midis)
-for file in list_of_files:
-    mid = MidiFile(path_to_midis + '\\' + file)
+my_utils.generate_final_midi(folder, 5, 0, 60)
 
-    # get midi duration
-    file_duration  = mid.length
+#TODO: fixare problema bpm perso, ora va fino a trimming, roba final no purtroppo
 
-    # shift each message by a specific time
-    for msg in mid.play():
-        msg.time+= 
 
 '''
 # mixer config
