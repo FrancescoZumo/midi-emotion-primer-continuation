@@ -7,6 +7,7 @@ import os
 import pygame
 import signal
 import mido
+from sklearn import preprocessing
 
 TRIM_BEGIN = 0
 TRIM_END = 10
@@ -33,14 +34,16 @@ def play_music(midi_filename, old_p_pid):
         clock.tick(30)  # check if playback has finished
 
 def generate_va_conditioned_midi(midi_reference, valence, arousal, gen_len):
-    model_used = 'continuous_token'
+    if valence is None and arousal is None:
+        model_used = 'vanilla'
+    else:
+        model_used = 'continuous_token'
     project_abs_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion'
     generations_rel_path = '\\output\\' + model_used + '\\generations\\inference'
     generations_abs_path = project_abs_path + generations_rel_path
 
     print("getting midi reference tempo")
-    curr_mid = MidiFile(midi_reference)
-    midi_reference_tempo = get_tempo(curr_mid)
+    midi_reference_tempo = get_tempo(midi_reference)
     
     print('loop started')
     os.system('del /q ' + generations_abs_path + '\\*')
@@ -48,7 +51,11 @@ def generate_va_conditioned_midi(midi_reference, valence, arousal, gen_len):
     tmp = os.getcwd()
     print('Current path: ', tmp)
     print('midi_reference: ', midi_reference)
-    os.system('python generate.py --gen_len ' + str(gen_len) + ' --model_dir ' + model_used + ' --conditioning ' + model_used + 
+    if model_used == 'vanilla':
+        os.system('python generate.py --gen_len '+str(gen_len) + 
+                  ' --model_dir vanilla --conditioning none --batch_size 1 --primer_path ' + midi_reference)
+    else: 
+        os.system('python generate.py --gen_len ' + str(gen_len) + ' --model_dir ' + model_used + ' --conditioning ' + model_used + 
               ' --batch_size 1 --valence '+ str(valence) + ' --arousal ' + str(arousal) + ' --primer_path ' + midi_reference)
     os.chdir('..')
     tmp = os.getcwd()
@@ -73,14 +80,9 @@ def generate_va_conditioned_midi(midi_reference, valence, arousal, gen_len):
 
     
 
-    print("setting tempo of generated midi")
-    curr_mid = MidiFile(midi_conditioned)
-    for index, metamessage in enumerate(curr_mid.tracks[0]):
-        if metamessage.type == 'set_tempo':
-            curr_mid.tracks[0][index].tempo = midi_reference_tempo
-            break
-
-    curr_mid.save(midi_conditioned)
+    #print("setting tempo of generated midi")
+    #curr_mid = set_tempo(midi_conditioned, midi_reference_tempo)
+    #curr_mid.save(midi_conditioned)
 
     
     os.chdir('..\\..\\..\\..')
@@ -105,21 +107,39 @@ def import_primers(midi_reference):
     # let's try importing a midi file and converting it to music tokens
     mid = pretty_midi.PrettyMIDI(midi_reference)
 
+    # used to fix compatibility issues
+    for i, _ in enumerate(mid.instruments):
+        if mid.instruments[i].name not in ['drums', 'piano', 'strings', 'bass', 'guitar']:
+            mid.instruments[i].name = 'piano'
+
     # determine trim length
     file_duration, primer_duration = determine_primer_duration(midi_reference)
     print("midi reference duration: ", file_duration, " seconds")
 
-    #cut from end
-    #mid_cut = data_proc.trim_midi(mid, file_duration - primer_duration, file_duration, True)
     #cut from beginning
     mid_cut = data_proc.trim_midi(mid, TRIM_BEGIN, TRIM_END, True)
 
     maps = data_proc.get_maps()
 
-    # used to fix compatibility issues
-    for i, _ in enumerate(mid_cut.instruments):
-        mid_cut.instruments[i].name = 'PIANO'
-    # note_events = data_proc.mid_to_timed_tuples(mid, maps['event2idx'])
+    # alternative trim
+    '''
+    midifile = mido.MidiFile(midi_reference)
+    lasttick = mido.second2tick(primer_duration, midifile.ticks_per_beat, get_tempo(midi_reference))
+
+    for track in midifile.tracks:
+        tick = 0
+        keep = []
+        for msg in track:
+            if tick > lasttick:
+                break
+            keep.append(msg)
+            tick += msg.time
+        track.clear()
+        track.extend(keep)
+
+    midifile.save(midi_reference[:len(midi_reference)-4] + '_primerv2' +'.mid')
+    '''
+
 
     # save primer as midi
     mid_cut.write(midi_reference[:len(midi_reference)-4] + '_primer' +'.mid')
@@ -151,7 +171,12 @@ def trim_primer_from_output(midi_output, midi_reference, live_mode=True):
 
     return out_file
 
-def va_series_processing(va_dataframe):
+def va_series_processing(va_dataframe, normalize=False):
+
+    # normalize valence and arousal series:
+    if normalize:
+        va_dataframe, _ , _ = normalize_columns(va_dataframe, custom_min=-1, custom_max=1, feat_indexes=[1, 2], verbose=1)
+
     # get abs(incremental ratio)
     abs_inc_ratio_val = []
     abs_inc_ratio_ar = []
@@ -204,24 +229,25 @@ def va_series_processing(va_dataframe):
 
     return va_dataframe
 
-def generate_final_midi(folder, gen_min_interval, start_t, end_t):
+def generate_final_midi(videogame_choice, video_name,  output_final_midis_path, gen_min_interval, start_t, end_t):
 
-    path_to_midis = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\current_midi\\' + folder
+    path_to_midis = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion\\current_midi\\' + video_name
     available_midis = os.listdir(path_to_midis)
-    output_final_midis = path_to_midis + '\\final'
+    output_final_midis_path += '\\'
 
     try:
-        os.mkdir(output_final_midis)
+        os.mkdir(output_final_midis_path)
     except FileExistsError:
         print('directory already existing')
 
-    os.system('del /q ' + output_final_midis + '\\*')
+    os.system('del /q ' + output_final_midis_path + '*')
 
     prev_midi_file = ''
     prev_t = -np.inf
     prev_mid = []
     prev_mid_duration = np.nan
-    final_mid_files = []
+    final_mid_files_path = []
+    
     for midi_file in available_midis:
         
         # keep only files with primer trimmed
@@ -230,62 +256,147 @@ def generate_final_midi(folder, gen_min_interval, start_t, end_t):
         
         curr_t = int(midi_file[2:5])
 
+        print('current_midi: ', midi_file)
+
         # if curr_t is acceptable and satisfies gen_min_interval
-        if curr_t >= start_t and curr_t <= end_t and (curr_t - prev_t) > gen_min_interval:
-            curr_mid = pretty_midi.PrettyMIDI(path_to_midis +'\\'+midi_file)
+        if curr_t == 0 or (curr_t >= start_t and curr_t <= end_t and (curr_t - prev_t) > gen_min_interval):
+
+            print('current_midi: ', midi_file)
+
+            print("getting midi reference tempo")
+            midi_reference_tempo = get_tempo(path_to_midis + '\\' + midi_file)
+            curr_mid = pretty_midi.PrettyMIDI(path_to_midis + '\\' + midi_file)
             curr_mid_duration  = curr_mid.get_end_time()
+
+            # doesn't count as iteration, just loading beginning mid
+            if curr_t == 0:
+                path_to_beginning_mid = path_to_midis + '\\' + midi_file
+                continue
             
-            
-            # if first iteration, continue
+            # if first iteration
             if prev_t == -np.inf:
+                # trim beginning midi until first generation starts
+                beginning_mid = pretty_midi.PrettyMIDI(path_to_beginning_mid)
+                beginning_mid = data_proc.trim_midi(beginning_mid, 0, curr_t, False)
+                beginning_mid.write(output_final_midis_path + 't_000_beginning.mid')
                 # update prev variables
+                final_mid_files_path.append(output_final_midis_path + 't_000_beginning.mid')
                 prev_midi_file, prev_t, prev_mid, prev_mid_duration = midi_file, curr_t, curr_mid, curr_mid_duration
                 continue
             
             # determine prev mid desired duration
-            prev_mid_desired_duration = curr_t - prev_t
+            prev_mid_desired_duration = np.float(curr_t - prev_t)
             final_midi_name = prev_midi_file[:len(prev_midi_file)-8] + '_final.mid'
 
             if prev_mid_duration < prev_mid_desired_duration:
                 #TODO: loop prev midi n times
-                n_iterations = int(np.ceil(prev_mid_desired_duration % prev_mid_duration))
+                n_iterations = int(np.ceil(prev_mid_desired_duration / prev_mid_duration))
                 for iter in range(n_iterations, 0, -1):
                     part = len(range(n_iterations, 0, -1)) - iter
                     # bug da sistemare
-                    final_midi_name_part = output_final_midis + '\\' + 'part' + str(part) + '_' + final_midi_name
+                    final_midi_name_part = output_final_midis_path + 'part' + str(part) + '_' + final_midi_name
                     if iter != 1:
                         # save a copy of current midi
                         prev_mid.write(final_midi_name_part)
-                        final_mid_files.append(final_midi_name_part)
+                        final_mid_files_path.append(final_midi_name_part)
+                        print(get_tempo(final_midi_name_part))
+
                     else:
                         # last iteration, generare remaining seconds
                         remaining_seconds = prev_mid_desired_duration - (prev_mid_duration * (n_iterations -1))
-                        prev_mid = data_proc.trim_midi(prev_mid, 0, remaining_seconds, True)
+                        prev_mid = data_proc.trim_midi(prev_mid, 0, remaining_seconds, False)
+                        print(prev_midi_file, ' desired_duration: ', remaining_seconds, ' real duration ', prev_mid.get_end_time())
                         prev_mid.write(final_midi_name_part)
-                        final_mid_files.append(final_midi_name_part)
+                        print(get_tempo(final_midi_name_part))
 
-                print("TODO: for now doing nothing")
+                        final_mid_files_path.append(final_midi_name_part)
+
             else:
-                #TODO: trim prev midi to desired duration
-                prev_mid = data_proc.trim_midi(prev_mid, 0, prev_mid_desired_duration, True)
-                prev_mid.write(output_final_midis + '\\' + final_midi_name)
+                # trim prev midi to desired duration
+                prev_mid = data_proc.trim_midi(prev_mid, 0, prev_mid_desired_duration, False)
+                print(prev_midi_file, ' desired_duration: ', prev_mid_desired_duration, ' real duration ', prev_mid.get_end_time())
+                prev_mid.write(output_final_midis_path + final_midi_name)
+                print(get_tempo(output_final_midis_path + final_midi_name))
             
                 # update final midi
                 #final_mid = concatenate_midis(final_mid, prev_mid)
-                final_mid_files.append(final_midi_name)
+                final_mid_files_path.append(output_final_midis_path + final_midi_name)
 
             # update prev variables
             prev_midi_file, prev_t, prev_mid, prev_mid_duration = midi_file, curr_t, curr_mid, curr_mid_duration
     
     # concatenate last file
     final_midi_name = prev_midi_file[:len(prev_midi_file)-9] + '_final.mid'
-    prev_mid.write(output_final_midis + '\\' + final_midi_name)
-    final_mid_files.append(final_midi_name) 
+    prev_mid.write(output_final_midis_path + final_midi_name)
+    final_mid_files_path.append(output_final_midis_path + final_midi_name)
+
+    print('synthesizing midi files to wav')
+    for i, file in enumerate(final_mid_files_path):
+        os.system('C:\\tools\\fluidsynth\\bin\\fluidsynth.exe ' + file + ' -F ' + output_final_midis_path + str(i) + '.wav')
 
 
 
-def get_tempo(mid):
+def get_tempo(path_to_midi):
+
+    mid = MidiFile(path_to_midi)
+
     for msg in mid:     # Search for tempo
         if msg.type == 'set_tempo':
             return msg.tempo
     return 500000       # If not found return default tempo
+
+def set_tempo(midi_conditioned, tempo):
+    curr_mid = MidiFile(midi_conditioned)
+    for index, metamessage in enumerate(curr_mid.tracks[0]):
+        if metamessage.type == 'set_tempo':
+            curr_mid.tracks[0][index].tempo = tempo
+            break
+
+
+def normalize_columns(va_dataframe, custom_min=None, custom_max=None, feat_indexes=[0, 1], verbose=0):
+    """
+    Normalize valence and arousal predictions in 0-1 range
+
+    Args:
+        va_dataframe: input dataframe
+        feat_dict: dict containing indexes inside df
+        feat_indexes: columns to normalize, default are valence and arousal
+        custom_min: used for custom range
+        custom_max: used for custom range
+        verbose: if 1, prints min and max values before and after normalization
+
+    Return:
+      dataframe with normalized columns
+    """
+    curr_min_value = None
+    curr_max_value = None
+
+    # normalization formula: (x - min) / (max - min)
+    for feat in feat_indexes:  # columns
+        if verbose:
+            print("min and max values before normalization:",
+                  va_dataframe.iloc[:, feat].min(), va_dataframe.iloc[:, feat].max())
+
+        va_dataframe.iloc[:, feat] = (va_dataframe.iloc[:, feat] - va_dataframe.iloc[:, feat].min()) / (
+                va_dataframe.iloc[:, feat].max() - va_dataframe.iloc[:, feat].min())
+        # linear conversion: NewValue = (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
+        if custom_min is not None and custom_max is not None and (custom_min != 0 or custom_max != 1):
+            va_dataframe, curr_min_value, curr_max_value = linear_conversion(va_dataframe, feat, 0, 1, custom_min, custom_max)
+        if verbose:
+            print("min and max values after normalization:", curr_min_value, curr_max_value)
+
+    if curr_max_value is None or curr_min_value is None:
+        raise Exception("no min or max values were determined, check function usage")
+    return va_dataframe, curr_min_value, curr_max_value
+
+def linear_conversion(df, df_column, old_min, old_max, custom_min, custom_max):
+    old_range = (old_max - old_min)
+    if old_range == 0:
+        df.iloc[:, df_column] = custom_min
+    else:
+        custom_range = (custom_max - custom_min)
+        df.iloc[:, df_column] = (((df.iloc[:,
+                                     df_column] - old_min) * custom_range) / old_range) + custom_min
+    curr_min_value = df.iloc[:, df_column].min()
+    curr_max_value = df.iloc[:, df_column].max()
+    return df, curr_min_value, curr_max_value

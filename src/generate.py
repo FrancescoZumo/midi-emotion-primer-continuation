@@ -391,7 +391,9 @@ if __name__ == '__main__':
     
     elif args.conditioning == "none":
         discrete_conditions = None
-        primers = [["<START>"] for _ in range(args.batch_size)]
+        #primers = [["<START>"] for _ in range(args.batch_size)]
+        bars_primer, _ = my_utils.import_primers(args.primer_path)
+        primers = bars_primer
 
     elif args.conditioning in ["continuous_token", "continuous_concat"]:
         # addet to condition from existing midi
