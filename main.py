@@ -6,7 +6,8 @@ import time
 import my_utils
 import pretty_midi
 import numpy as np
-
+import my_utils
+import math
 
 if __name__ == '__main__':
 
@@ -47,9 +48,9 @@ if __name__ == '__main__':
 
     for video in available_videos:
 
-        if not ("na3" in video):
-            print("skipping: ", video)
-            continue
+        #if not ("na3" in video):
+        #    print("skipping: ", video)
+        #    continue
         
         video_filename = video[:len(video)-4]   # remove .mp4 from name
         print("processing video: ", video_filename)
@@ -61,6 +62,8 @@ if __name__ == '__main__':
 
         output_midi_folder_cond = output_midi_folder + '\\' + 'conditioned'
         output_midi_folder_uncond = output_midi_folder + '\\' + 'unconditioned'
+
+        my_utils.import_primers(midi_reference)
 
         # if the  directory is not present then create it.
         if not os.path.exists(output_midi_folder):
@@ -162,7 +165,20 @@ if __name__ == '__main__':
                 print('file not found: breaking loop')
                 quit()
             else:
-                va_dataframe = pd.read_csv(current_va_path)
+                va_dataframe = pd.read_csv(current_va_path, names=['time', 'valence', 'arousal'])
+                while math.isnan(va_dataframe.loc[0]['time']):
+                    va_dataframe = va_dataframe.drop(0).reset_index(drop=True)
+
+            # since we cannot predict the future, pad beginning of dataframe first prediction according to frames time window
+            # TODO: test everything works fine
+            va_dataframe['time'] += 1
+            padding_row = pd.DataFrame({
+                'time': va_dataframe['time'][0] - 1, 
+                'valence': va_dataframe['valence'][0], 
+                'arousal': va_dataframe['arousal'][0]
+                }, index=[0])
+            va_dataframe = pd.concat([padding_row,va_dataframe.loc[:]]).reset_index(drop=True)
+            va_dataframe = va_dataframe.drop(va_dataframe.shape[0] - 1).reset_index(drop=True)
 
             # process dataframe
             va_dataframe = my_utils.va_series_processing(va_dataframe, normalize=normalize_va_predictions)
@@ -175,6 +191,7 @@ if __name__ == '__main__':
             last_gen_index = 0
 
             for index, row in va_dataframe.iterrows():
+
                 if index > video_max_length:
                     print("maximum length reached, stopping")
                     break

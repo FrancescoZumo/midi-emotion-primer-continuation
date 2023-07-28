@@ -121,26 +121,6 @@ def import_primers(midi_reference):
 
     maps = data_proc.get_maps()
 
-    # alternative trim
-    '''
-    midifile = mido.MidiFile(midi_reference)
-    lasttick = mido.second2tick(primer_duration, midifile.ticks_per_beat, get_tempo(midi_reference))
-
-    for track in midifile.tracks:
-        tick = 0
-        keep = []
-        for msg in track:
-            if tick > lasttick:
-                break
-            keep.append(msg)
-            tick += msg.time
-        track.clear()
-        track.extend(keep)
-
-    midifile.save(midi_reference[:len(midi_reference)-4] + '_primerv2' +'.mid')
-    '''
-
-
     # save primer as midi
     mid_cut.write(midi_reference[:len(midi_reference)-4] + '_primer' +'.mid')
 
