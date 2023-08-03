@@ -8,9 +8,9 @@ The code is based on the pre-trained Music transformer proposed and publicly sha
 
 ## Usage
 
-In order to run main.py you first need to download the code from the repository linked above, in particular you need to add `src/data`, `src/models`, `src/create_datasets` to the project folder.
+In order to run main.py you first need to download the code from the repository linked above, in particular you need to add `src/data`, `src/models`, `src/create_datasets` to the project folder. Then, you must adapt the paths to your own environment and provide a `primer.mid` and a `filename.csv` containing valence and arousal timeseries 
 
-Then, you must adapt the paths to your own environment and provide a `primer.mid` and a `filename.csv` containing valence and arousal timeseries 
+
 
 Once everything is set up, run `main.py` to generate the conditioned soundtrack, which is saved by default at `current_midi\filename\conditioned\*`. Specifically, a separate file (both `.mid` and `.wav`) for each change on emotional conditioning is produced. 
 
