@@ -3,7 +3,7 @@ Code written for my master's thesis: Procedural music generation for videogames 
 
 Complementary repositories, part of the same project:
 -  [valence-arousal-video-estimation](https://github.com/FrancescoZumo/valence-arousal-video-estimation)
--  [current repository](https://github.com/FrancescoZumo/midi-emotion-primer-continuation)
+-  midi-emotion-primer-continuation (current repository)
 -  [videogame-procedural-music-experimental-setup](https://github.com/FrancescoZumo/videogame-procedural-music-experimental-setup)
 
 
