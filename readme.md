@@ -6,6 +6,8 @@ In particolar the inference procedure is developed for obtaining a sequence of m
 
 The code is based on the pre-trained Music transformer proposed and publicly shared by Sulun et al. : https://github.com/serkansulun/midi-emotion
 
+## Usage
+
 In order to run main.py you first need to download the code from the repository linked above, in particular you need to add `src/data`, `src/models`, `src/create_datasets` to the project folder.
 
 Then, you must adapt the paths to your own environment and provide a `primer.mid` and a `filename.csv` containing valence and arousal timeseries 
