@@ -8,3 +8,6 @@ vgmidi/*
 .cache
 *.mid
 *.wav
+src/data/*
+src/models/*
+
