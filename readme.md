@@ -1,5 +1,15 @@
-# symbolic music generation contitioned on v-a timeseries and MIDI primer for experimental setup
-Code written for my master's thesis: Procedural music generation forvideogames conditioned through video emotion recognition
+# Symbolic music generation contitioned on v-a timeseries and MIDI primer for experimental setup
+Code written for my master's thesis: Procedural music generation for videogames conditioned through video emotion recognition
+
+Complementary repositories, part of the same project:
+-  [valence-arousal-video-estimation](https://github.com/FrancescoZumo/valence-arousal-video-estimation)
+-  [current repository](https://github.com/FrancescoZumo/midi-emotion-primer-continuation)
+-  [videogame-procedural-music-experimental-setup](https://github.com/FrancescoZumo/videogame-procedural-music-experimental-setup)
+
+
+More details can be found in the thesis manuscript (TODO link once article/thesis is published)
+
+## Description
 
 This folder contains the code written for generating a continuous soundtrack conditioned on a valence and arousal timeseries and any input midi file, namely `primer.mid`.
 
@@ -7,7 +17,6 @@ In particolar the inference procedure is developed for obtaining a sequence of m
 
 The code is based on the pre-trained Music transformer proposed and publicly shared by Sulun et al. : https://github.com/serkansulun/midi-emotion
 
-More details can be found in the thesis manuscript (TODO link once article/thesis is published)
 
 ## Usage
 
