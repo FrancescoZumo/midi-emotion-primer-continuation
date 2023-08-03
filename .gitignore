@@ -8,3 +8,4 @@ vgmidi/*
 .cache
 *.mid
 *.wav
+current_midi/*
