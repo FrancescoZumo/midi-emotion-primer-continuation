@@ -1,4 +1,4 @@
-# symbolic music generation contitioned on video emotions - experiment preparation
+# symbolic music generation contitioned on v-a time series for experimental setup
 Code written for my master's thesis: Procedural music generation forvideogames conditioned through video emotion recognition
 
 This folder contains the code written for generating a continuous soundtrack conditioned on a valence and arousal timeseries and any input midi file, namely 'primer'.
