@@ -1,3 +1,6 @@
+# code taken from https://github.com/serkansulun/midi-emotion
+# and modified for receiving any midi as primer for generating musical continuation
+
 from argparse import ArgumentParser
 from copy import deepcopy
 import os

@@ -1,3 +1,8 @@
+# Author: Francesco Zumerle
+# code written for thesis: 
+#   Procedural music generation for videogames conditioned through video emotion recognition
+
+
 import pretty_midi
 import src.data.data_processing as data_proc
 from mido import MidiFile, tempo2bpm, MetaMessage
@@ -6,8 +11,6 @@ from os.path import isfile, join
 import os
 import pygame
 import signal
-import mido
-from sklearn import preprocessing
 
 TRIM_BEGIN = 0
 TRIM_END = 10
