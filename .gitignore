@@ -1,8 +1,10 @@
 __pycache__
 .vscode
+.idea
 data_files/*
 output/*
 vgmidi/*
 !.gitkeep
 .cache
 *.mid
+*.wav
