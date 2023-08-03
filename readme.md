@@ -12,5 +12,7 @@ In order to run main.py you first need to download the code from the repository 
 
 Then, you must adapt the paths to your own environment and provide a `primer.mid` and a `filename.csv` containing valence and arousal timeseries 
 
-Once everything is set up, run `main.py` to generate the conditioned soundtrack, which is saved by default at `current_midi\filename\conditioned\*`. Specifically, a separate file (both `.mid` and `.wav`) for each change on emotional conditioning is produced. Each `.mid` filename is formatted as `beginning time (seconds) + valence + arousal + .mid`, so that they could be easily sorted in a DAW and combined with the correspondent video for producing videos as experimental material.
+Once everything is set up, run `main.py` to generate the conditioned soundtrack, which is saved by default at `current_midi\filename\conditioned\*`. Specifically, a separate file (both `.mid` and `.wav`) for each change on emotional conditioning is produced. 
+
+Each `.mid` filename is formatted as `beginning time (seconds) + valence + arousal + .mid`, so that they could be easily sorted in a DAW and combined with the correspondent video for producing videos as experimental material.
 
