@@ -37,7 +37,7 @@ def generate_va_conditioned_midi(midi_reference, valence, arousal, gen_len):
     if valence is None and arousal is None:
         model_used = 'vanilla'
     else:
-        model_used = 'continuous_token'
+        model_used = 'continuous_concat'
     project_abs_path = 'C:\\Users\\franc\\PycharmProjects\\videogame-procedural-music\\midi-emotion'
     generations_rel_path = '\\output\\' + model_used + '\\generations\\inference'
     generations_abs_path = project_abs_path + generations_rel_path
@@ -78,13 +78,10 @@ def generate_va_conditioned_midi(midi_reference, valence, arousal, gen_len):
         print('playing ', i, ' file')
         break
 
-    
-
     #print("setting tempo of generated midi")
     #curr_mid = set_tempo(midi_conditioned, midi_reference_tempo)
     #curr_mid.save(midi_conditioned)
 
-    
     os.chdir('..\\..\\..\\..')
 
     return midi_conditioned, generations_abs_path
@@ -167,8 +164,8 @@ def va_series_processing(va_dataframe, normalize=False):
             abs_inc_ratio_val.append(np.nan)
             abs_inc_ratio_ar.append(np.nan)
             continue
-        abs_inc_ratio_val.append(np.abs((row['valence'] - previous_val)/2))
-        abs_inc_ratio_ar.append(np.abs((row['arousal'] - previous_ar)/2))
+        abs_inc_ratio_val.append(np.abs((float(row['valence']) - float(previous_val))/2))
+        abs_inc_ratio_ar.append(np.abs((float(row['arousal']) - float(previous_ar)/2)))
         previous_val = row['valence']
         previous_ar = row['arousal']
     if not len(abs_inc_ratio_ar) == len(va_dataframe):

@@ -220,7 +220,7 @@ if __name__ == '__main__':
                 midi_conditioned = output_midi_folder + '\\' + midi_conditioned
 
                 # rename file accordingly
-                new_name = output_midi_folder + '\\'  + 't_' + "{:03d}".format(index) + '__' + "{:.2f}_{:.2f}_".format(valence, arousal) + '.mid'
+                new_name = output_midi_folder + '\\'  + 't_' + "{:03d}".format(index) + '__' + "{:.2f}_{:.2f}_".format(float(valence), float(arousal)) + '.mid'
                 os.system('move /Y ' + midi_conditioned + ' ' + new_name)
                 midi_conditioned = new_name
 
