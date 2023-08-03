@@ -1,11 +1,10 @@
-# symbolic music generation conditioned on valence, arousal and midi primer
-
+# symbolic music generation contitioned on video emotions - experimental setup
 Code written for my master's thesis: Procedural music generation forvideogames conditioned through video emotion recognition
 
 This folder contains the code written for generating a continuous soundtrack conditioned on a valence and arousal timeseries and any input midi file, namely 'primer'.
+In particolar the inference procedure is developed for obtaining a sequence of midi files to be synthesised with a DAW for the experimental evaluation of the project
 
 The code is based on the pre-trained Music transformer proposed by Sulun et al. : https://github.com/serkansulun/midi-emotion
-
 
 In order to run main.py you first need to download the code from that repository, in particular you need to add `src/data`, `src/models`, `src/create_datasets` to the project folder.
 
