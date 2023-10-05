@@ -7,7 +7,8 @@ Complementary repositories, part of the same project:
 -  [videogame-procedural-music-experimental-setup](https://github.com/FrancescoZumo/videogame-procedural-music-experimental-setup)
 
 
-More details can be found in the thesis manuscript (TODO link once article/thesis is published)
+More details can be found in the [thesis manuscript](https://www.politesi.polimi.it/handle/10589/210809
+)
 
 ## Description
 
